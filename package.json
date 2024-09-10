@@ -1,6 +1,6 @@
 {
   "name": "multi-image-uploader",
-  "version": "0.0.1-dev",
+  "version": "0.0.1",
   "description": "it allows multiple image uploading option with preview and it uses MUI styles",
   "main": "dist/index.js",
   "scripts": {
@@ -31,6 +31,6 @@
   "peerDependencies": {
     "react": ">=16.8.0 <19.0.0",
     "react-dom": ">=16.8.0 <19.0.0",
-    "@mui/styles": "^5.16.7" 
+    "@mui/styles": "^5.16.7"
   }
 }
