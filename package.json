@@ -1,0 +1,31 @@
+{
+  "name": "multi-image-uploader",
+  "version": "0.0.1-dev",
+  "description": "it allows multiple image uploading option with preview and it uses MUI styles",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "babel src --out-dir dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohanlokesh/mui-multi-image-upload.git"
+  },
+  "keywords": [
+    "mui",
+    "image",
+    "upload",
+    "multiple"
+  ],
+  "author": "Lokesh M",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mohanlokesh/mui-multi-image-upload/issues"
+  },
+  "homepage": "https://github.com/mohanlokesh/mui-multi-image-upload#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.25.6",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-react": "^7.24.7"
+  }
+}
