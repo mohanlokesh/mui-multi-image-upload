@@ -1,7 +1,7 @@
 {
   "name": "multi-image-uploader",
-  "version": "0.0.2",
-  "description": "it allows multiple image uploading option with preview and it uses MUI styles",
+  "version": "0.0.2-dev-0.1",
+  "description": "It allows multiple image uploading option with preview and uses MUI system for styling",
   "main": "dist/index.js",
   "scripts": {
     "build": "babel src --out-dir dist"
@@ -29,8 +29,10 @@
     "@babel/preset-react": "^7.24.7"
   },
   "peerDependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@mui/styles": "^5.16.2"
+    "@emotion/react": "^11.4.1",
+    "@mui/icons-material": "^5.0.0",
+    "@mui/material": "^5.0.1",
+    "react": "^16.8.0 || ^17.0.2 || ^18.0.0",
+    "react-dom": "^16.8.0 || ^17.0.2 || ^18.0.0"
   }
 }
