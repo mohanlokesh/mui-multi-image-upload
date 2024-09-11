@@ -1,14 +1,26 @@
-import React, { useState } from "react";
-import { Box, Button, IconButton, Grid, Typography } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  IconButton,
+  Grid,
+  Typography,
+  Skeleton,
+} from "@mui/material";
 import { Delete } from "@mui/icons-material";
 import { arrayMoveImmutable } from "array-move";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 
+export type OnImageUploaderProps = { file: File[]; order: number };
+
 interface ImageUploaderProps {
+  onUpload: (files: OnImageUploaderProps[]) => void;
   minImages?: number;
   maxImages?: number;
   validImages?: { url: string; order: number }[];
   readonly?: boolean;
+  acceptTypes?: string[];
+  loading?: boolean; // New loading prop
 }
 
 interface Image {
@@ -22,6 +34,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   maxImages = 5, // 0 means unlimited
   validImages = [],
   readonly = false,
+  acceptTypes = ["image/jpeg", "image/jpg", "image/png"],
+  loading = false, // Default to false
+  onUpload,
 }) => {
   const initialImages = validImages.length
     ? validImages.map((img) => ({ url: img.url }))
@@ -29,12 +44,25 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const [images, setImages] = useState<Image[]>(initialImages);
 
+  useEffect(() => {
+    setImages(
+      validImages.length
+        ? validImages.map((img) => ({ url: img.url }))
+        : Array(minImages).fill({ url: "", placeholder: true })
+    );
+  }, [validImages, minImages]);
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     index: number
   ) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!acceptTypes.includes(file.type)) {
+        alert("Please upload a valid image file.");
+        return;
+      }
+
       const newImages = [...images];
       newImages[index] = {
         file,
@@ -67,12 +95,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const handleSave = () => {
     const imageData = images
-      .filter((image) => image && !image.placeholder)
+      .filter((image) => image && !image.placeholder && image.file)
       .map((image, index) => ({
         order: index + 1,
-        file: image.file,
+        file: [image.file as File], // Ensure file is an array
       }));
-    console.log(imageData); // Save this data (to backend or API)
+
+    // Reset images
+    setImages(
+      Array(minImages)
+        .fill({ url: "", placeholder: true })
+        .concat(
+          validImages.length ? validImages.map((img) => ({ url: img.url })) : []
+        )
+    );
+    onUpload(imageData);
   };
 
   const onSortEnd = ({
@@ -96,12 +133,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       e: React.ChangeEvent<HTMLInputElement>,
       index: number
     ) => void;
+    loading?: boolean; // Optional loading for the image slot
   }>(
     ({
       image,
       readonly,
       handleDelete,
       handleFileChange,
+      loading,
     }: {
       image: Image;
       readonly: boolean;
@@ -110,20 +149,40 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         e: React.ChangeEvent<HTMLInputElement>,
         index: number
       ) => void;
+      loading?: boolean;
     }) => (
       <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
         <Box
-          sx={{
-            border: "1px dashed grey",
-            width: "100%",
-            paddingTop: "100%", // This creates a 1:1 aspect ratio
-            position: "relative",
-            backgroundColor: "#f5f5f5",
-            overflow: "hidden",
-            cursor: !readonly ? "move" : "default", // Show 'move' cursor on hover for drag
-          }}
+          sx={
+            loading
+              ? {
+                  border: "1px solid grey",
+                  position: "relative",
+                  width: "100%",
+                  paddingTop: "100%",
+                  cursor: "not-allowed",
+                }
+              : {
+                  border: "1px dashed grey",
+                  width: "100%",
+                  paddingTop: "100%",
+                  position: "relative",
+                  backgroundColor: "#f5f5f5",
+                  overflow: "hidden",
+                  cursor: !readonly ? "move" : "default", // Show 'move' cursor on hover for drag
+                }
+          }
         >
-          {image.url ? (
+          {loading ? (
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height="100%"
+              animation="wave"
+            >
+              Loading...
+            </Skeleton>
+          ) : image.url ? (
             <>
               <img
                 src={image.url}
@@ -167,10 +226,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   transform: "translate(-50%, -50%)",
                 }}
               >
-                Select File
+                Select Image
               </Typography>
               <input
                 type="file"
+                accept={acceptTypes.join(",")}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -200,6 +260,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             readonly={readonly}
             handleDelete={handleDelete}
             handleFileChange={handleFileChange}
+            loading={loading} // Pass loading prop to each image
           />
         ))}
       </Grid>
@@ -213,13 +274,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         axis="xy"
         pressDelay={100} // Add delay to start dragging
       />
-      {!readonly && (
-        <Box sx={{ marginTop: 2, display: "flex", gap: 2 }}>
-          <Button variant="contained" onClick={handleSave}>
-            Save Files
-          </Button>
-        </Box>
-      )}
+      {!readonly &&
+        !loading && ( // Hide buttons if loading is true
+          <Box sx={{ marginTop: 2, display: "flex", gap: 2 }}>
+            <Button variant="contained" onClick={handleSave}>
+              Save Files
+            </Button>
+          </Box>
+        )}
     </Box>
   );
 };
