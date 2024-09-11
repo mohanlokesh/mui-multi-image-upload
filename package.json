@@ -1,6 +1,6 @@
 {
   "name": "multi-image-uploader",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "It allows multiple image uploading option with preview and uses MUI system for styling",
   "main": "dist/index.js",
   "types": "index.d.ts",
