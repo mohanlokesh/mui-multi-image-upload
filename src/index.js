@@ -1,1 +1,1 @@
-export { ImageUploader } from "./ImageUploader";
+export { default as ImageUploader } from "./ImageUploader";
