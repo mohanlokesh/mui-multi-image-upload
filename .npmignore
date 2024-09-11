@@ -2,3 +2,7 @@
 /node_modules
 ./package-lock.json
 ./yarn.lock
+.babelrc
+.eslintrc.js
+.gitignore
+tsconfig.json
