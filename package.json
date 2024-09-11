@@ -3,7 +3,7 @@
   "version": "0.0.4",
   "description": "It allows multiple image uploading option with preview and uses MUI system for styling",
   "main": "dist/index.js",
-  "types": "index.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc && babel src --out-dir dist"
   },
