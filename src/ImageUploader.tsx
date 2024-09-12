@@ -7,11 +7,24 @@ import {
   Typography,
   Skeleton,
 } from "@mui/material";
-import { Delete } from "@mui/icons-material";
+import { makeStyles } from "@mui/styles";
+import { Delete, Opacity } from "@mui/icons-material";
 import { arrayMoveImmutable } from "array-move";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
+import zIndex from "@mui/material/styles/zIndex";
 
 export type OnImageUploaderProps = { file: File[]; order: number };
+
+const useStyles = makeStyles(() => ({
+  draggedElement: {
+    zIndex: zIndex.drawer + 1,
+    opacity: 0.5, // lowercase 'o' in opacity
+    boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.5)",
+    "& button": {
+      display: "none",
+    },
+  },
+}));
 
 interface ImageUploaderProps {
   onUpload: (files: OnImageUploaderProps[]) => void;
@@ -53,7 +66,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   onDelete,
 }) => {
   const createInitialImages = () => {
-    const valid = validImages.map((img) => ({ id: img.id, url: img.url })) as Image[];
+    const valid = validImages.map((img) => ({
+      id: img.id,
+      url: img.url,
+    })) as Image[];
     const emptySlots = Math.max(minImages - valid.length, 0);
     const initial = valid.concat(
       Array(emptySlots).fill({ url: "", placeholder: true })
@@ -283,12 +299,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     );
   });
 
+  const classes = useStyles();
+
   return (
     <Box sx={{ padding: 3 }}>
       <SortableImageGrid
         onSortEnd={onSortEnd}
         axis="xy"
         pressDelay={100} // Add delay to start dragging
+        helperClass={classes.draggedElement}
       />
       {!readonly &&
         !loading && ( // Hide buttons if loading is true
