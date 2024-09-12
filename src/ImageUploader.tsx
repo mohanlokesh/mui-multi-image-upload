@@ -15,18 +15,31 @@ export type OnImageUploaderProps = { file: File[]; order: number };
 
 interface ImageUploaderProps {
   onUpload: (files: OnImageUploaderProps[]) => void;
+  onDelete: (id?: string) => Promise<boolean>;
   minImages?: number;
   maxImages?: number;
-  validImages?: { url: string; order: number }[];
+  validImages?: { id: string; url: string; order: number }[];
   readonly?: boolean;
   acceptTypes?: string[];
-  loading?: boolean; // New loading prop
+  loading?: boolean;
 }
 
 interface Image {
+  id?: string; // Optional id for images that are already uploaded
   file?: File;
   url: string;
   placeholder?: boolean;
+}
+
+interface SortableImageProps {
+  image: Image;
+  readonly: boolean;
+  handleDelete: (index: number) => void;
+  handleFileChange: (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => void;
+  loading?: boolean;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -35,21 +48,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   validImages = [],
   readonly = false,
   acceptTypes = ["image/jpeg", "image/jpg", "image/png"],
-  loading = false, // Default to false
+  loading = false,
   onUpload,
+  onDelete,
 }) => {
-  const initialImages = validImages.length
-    ? validImages.map((img) => ({ url: img.url }))
-    : Array(minImages).fill({ url: "", placeholder: true });
+  const createInitialImages = () => {
+    const valid = validImages.map((img) => ({ id: img.id, url: img.url })) as Image[];
+    const emptySlots = Math.max(minImages - valid.length, 0);
+    const initial = valid.concat(
+      Array(emptySlots).fill({ url: "", placeholder: true })
+    );
 
-  const [images, setImages] = useState<Image[]>(initialImages);
+    // Ensure one empty slot if below maxImages (or maxImages is 0)
+    if (initial.length < maxImages || maxImages === 0) {
+      initial.push({ url: "", placeholder: true });
+    }
+
+    return initial;
+  };
+
+  const [images, setImages] = useState<Image[]>(createInitialImages);
 
   useEffect(() => {
-    setImages(
-      validImages.length
-        ? validImages.map((img) => ({ url: img.url }))
-        : Array(minImages).fill({ url: "", placeholder: true })
-    );
+    setImages(createInitialImages());
   }, [validImages, minImages]);
 
   const handleFileChange = (
@@ -82,6 +103,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   };
 
   const handleDelete = (index: number) => {
+    const imageToDelete = images[index];
+
     const newImages = [...images];
     newImages.splice(index, 1);
 
@@ -90,7 +113,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       newImages.push({ url: "", placeholder: true });
     }
 
+    // Ensure one empty slot if below maxImages
+    if (newImages.length < maxImages || maxImages === 0) {
+      newImages.push({ url: "", placeholder: true });
+    }
+
     setImages(newImages);
+
+    // If the image has an id, call onDelete with the id
+    if (imageToDelete.id && onDelete) {
+      onDelete(imageToDelete.id);
+    }
   };
 
   const handleSave = () => {
@@ -106,7 +139,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       Array(minImages)
         .fill({ url: "", placeholder: true })
         .concat(
-          validImages.length ? validImages.map((img) => ({ url: img.url })) : []
+          validImages.length
+            ? validImages.map((img) => ({ id: img.id, url: img.url }))
+            : []
         )
     );
     onUpload(imageData);
@@ -125,128 +160,109 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  const SortableImage = SortableElement<{
-    image: Image;
-    readonly: boolean;
-    handleDelete: (index: number) => void;
-    handleFileChange: (
-      e: React.ChangeEvent<HTMLInputElement>,
-      index: number
-    ) => void;
-    loading?: boolean; // Optional loading for the image slot
-  }>(
-    ({
-      image,
-      readonly,
-      handleDelete,
-      handleFileChange,
-      loading,
-    }: {
-      image: Image;
-      readonly: boolean;
-      handleDelete: (index: number) => void;
-      handleFileChange: (
-        e: React.ChangeEvent<HTMLInputElement>,
-        index: number
-      ) => void;
-      loading?: boolean;
-    }) => (
-      <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
-        <Box
-          sx={
-            loading
-              ? {
-                  border: "1px solid grey",
-                  position: "relative",
-                  width: "100%",
-                  paddingTop: "100%",
-                  cursor: "not-allowed",
-                }
-              : {
-                  border: "1px dashed grey",
-                  width: "100%",
-                  paddingTop: "100%",
-                  position: "relative",
-                  backgroundColor: "#f5f5f5",
-                  overflow: "hidden",
-                  cursor: !readonly ? "move" : "default", // Show 'move' cursor on hover for drag
-                }
-          }
-        >
-          {loading ? (
-            <Skeleton
-              variant="rectangular"
-              width="100%"
-              height="100%"
-              animation="wave"
-            >
-              Loading...
-            </Skeleton>
-          ) : image.url ? (
-            <>
-              <img
-                src={image.url}
-                alt="Uploaded"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-              {!readonly && !image.placeholder && (
-                <IconButton
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent drag event
-                    handleDelete(images.indexOf(image));
+  const SortableImage = SortableElement<SortableImageProps>(
+    (props: SortableImageProps) => {
+      const { image, readonly, handleDelete, handleFileChange, loading } =
+        props;
+
+      return (
+        <Grid item xs={12} sm={6} md={4} lg={3} xl={2}>
+          <Box
+            sx={
+              loading
+                ? {
+                    border: "1px solid grey",
+                    position: "relative",
+                    width: "100%",
+                    paddingTop: "100%",
+                    cursor: "not-allowed",
+                  }
+                : {
+                    border: "1px dashed grey",
+                    width: "100%",
+                    paddingTop: "100%",
+                    position: "relative",
+                    backgroundColor: "#f5f5f5",
+                    overflow: "hidden",
+                    cursor: !readonly ? "move" : "default", // Show 'move' cursor on hover for drag
+                  }
+            }
+          >
+            {loading ? (
+              <Skeleton
+                variant="rectangular"
+                width="100%"
+                height="100%"
+                animation="wave"
+              >
+                Loading...
+              </Skeleton>
+            ) : image.url ? (
+              <>
+                <img
+                  src={image.url}
+                  alt="Uploaded"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
                   }}
+                />
+                {!readonly && !image.placeholder && (
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent drag event
+                      handleDelete(images.indexOf(image));
+                    }}
+                    sx={{
+                      position: "absolute",
+                      top: 5,
+                      right: 5,
+                      color: "white",
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      cursor: "pointer", // Ensure delete has pointer cursor
+                    }}
+                  >
+                    <Delete />
+                  </IconButton>
+                )}
+              </>
+            ) : !readonly && image.placeholder ? (
+              <>
+                <Typography
+                  variant="body2"
                   sx={{
                     position: "absolute",
-                    top: 5,
-                    right: 5,
-                    color: "white",
-                    backgroundColor: "rgba(0, 0, 0, 0.5)",
-                    cursor: "pointer", // Ensure delete has pointer cursor
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
                   }}
                 >
-                  <Delete />
-                </IconButton>
-              )}
-            </>
-          ) : !readonly && image.placeholder ? (
-            <>
-              <Typography
-                variant="body2"
-                sx={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                Select Image
-              </Typography>
-              <input
-                type="file"
-                accept={acceptTypes.join(",")}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  opacity: 0,
-                  cursor: "pointer",
-                }}
-                onChange={(e) => handleFileChange(e, images.indexOf(image))}
-              />
-            </>
-          ) : null}
-        </Box>
-      </Grid>
-    )
+                  Select Image
+                </Typography>
+                <input
+                  type="file"
+                  accept={acceptTypes.join(",")}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    opacity: 0,
+                    cursor: "pointer",
+                  }}
+                  onChange={(e) => handleFileChange(e, images.indexOf(image))}
+                />
+              </>
+            ) : null}
+          </Box>
+        </Grid>
+      );
+    }
   );
 
   const SortableImageGrid = SortableContainer(() => {
